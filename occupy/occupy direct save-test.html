@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Dataist: Occupy Wall Street visualized</title>
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+
+    <script type="text/javascript" src="d3.js"></script>
+    <script type="text/javascript" src="d3.geo.js"></script>
+
+  <link href="jquery-ui.css" rel="stylesheet" type="text/css"/>
+  <script src="jquery.min.js"></script>
+  <script src="jquery-ui.min.js"></script>
+
+
+    <style type="text/css">
+ #slider { 	margin: 10px; 	width: 200px;  } #legend { 	width: 220px; 	font-size: 10pt; } 
+ body, .ui-widget {   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;   color: black;   background: white; } #ylabel, #label, #date { 	font-size: 72pt; 	text-align:left; 	font-weight: 800; 	color: lightgrey; }#count { 	font-size: 16pt; 	text-align:left; 	font-weight: 800; 	color: black; }#text { 	font-size: 11pt; 	font-weight:300; 	line-height: 150%; }  h1 { 	font-size: 36px; 	font-weight: 800; }  h2 { 	font-size: 24px; 	font-weight: 300; }  #text { 	position:absolute; 	top: 270px; 	left: 300px; 	width: 510px; 	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 	font-size: 10pt; 	font-weight:300; 	line-height: 150%; }   
+
+
+svg {      border: solid 0px #ccc;   background: white; }  #states path {   fill: lightgrey;   stroke: #fff; }  #states circle {   fill: red;   }
+
+
+    </style>
+  </head>
+  <body>
+
+	
+   <script type="text/javascript">
+    $(function() { 
+var xy = d3.geo.mercator().translate([561, 226]).scale(800),//.scale(870),
+    path = d3.geo.path().projection(xy)
+	total = 0;
+
+var vis = d3.select("#chart").append("svg");
+  
+var map = vis.append("svg:g")
+    .attr("id", "states")
+	.attr("transform","translate(50,200)");
+
+d3.json("world-countries.json", function(collection) {
+
+
+  d3.select("#states")
+    .selectAll("path")
+      .data(collection.features)
+    .enter().append("svg:path")
+      .attr("d", path);
+
+d3.json("data3.js", function(json) {
+
+var days = [ 'Oct 05', 'Oct 06', 'Oct 07', 'Oct 08', 'Oct 09', 'Oct 10', 'Oct 11', 'Oct 12', 'Oct 13', 'Oct 14', 'Oct 15', 'Oct 16', 'Oct 17', 'Oct 18', 'Oct 19', 'Oct 20', 'Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25', 'Oct 26', 'Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31', 'Nov 01', 'Nov 02', 'Nov 03', 'Nov 04', 'Nov 05' ],
+	wDay = 3,
+	cDay = 0,
+	row = 1,
+	dotX = 30
+	dotY = 30
+	leftMargin = 40
+	topMargin = 10;
+
+function data(day) {
+	var data = []
+	for (j = 0; j < json.length ; j++) {
+		if (day == json[j].Date) {
+			data.push(json[j])
+		}
+	}
+	return data
+}
+console.log(data("Oct 24"))
+
+$(document).ready(function() {
+  $("#slider").slider({
+	  min:0,
+	  max: days.length-1,
+	  step: 1,
+	  value: 0,
+	  slide: function(event, ui) {
+		cDay = ui.value;
+		d3.selectAll("#ylabel").text(function() {return data(days[cDay]).length});
+	    update();
+	  }
+
+	});
+});
+
+
+lastx = 0;
+
+function radius(x) {
+	return Math.sqrt(x)*.25
+}
+
+total = vis.selectAll("dots_tot")
+					.data(days, function(d) { return d })
+					.enter().append("svg:g")
+						.attr("class", "gdots_tot")
+						.attr("transform", function(d,i) {
+//							y = (radius(data(days[i]).length)+radius(data(days[i-1]).length))*4.3 + lasty
+							x = wDay*dotX + lastx
+							lasty = x
+							y = row*dotY+topMargin
+							if (wDay == 7) { wDay = 1, lasty = 0, row += 1 }
+							else { wDay += 1}
+							return "translate(" + x + ","+ y +")"
+						});
+
+				total.append("svg:circle")
+						.attr("class", "dots_tot")
+
+
+					total.append("svg:text")
+//						.text(function(d) {return data(d).length})
+						.text(function(d,i) {return d.replace("Oct 0", "").replace("Oct ", "").replace("Nov 0", "").replace("Nov ", "")})
+						.attr("fill", "white")
+						.attr("text-anchor","middle")
+						.attr("dy", ".35em")
+						.attr("font-size", function(d) {return radius(data(d).length)*4})
+						.attr("font-size", 8)
+						.attr("fill-opacity", 1)
+						.attr("class","label");
+
+var weekdays = ["M","T","W","T","F","S","S"];
+
+vis.selectAll("wdays")
+	.data(weekdays)
+	.enter().append("svg:text")
+	.attr("transform", function(d,i) {
+		y = topMargin+10
+		return "translate(" + (i+1)*dotX + ","+ y +")"
+	})
+	.text(function(d) {return d})
+	.attr("text-anchor","middle")
+	.attr("font-size", 8);
+
+update()
+
+
+function update() {
+
+dotsEnter = map.selectAll("dots")
+					.data(data(days[cDay]), function(d) { return d.ID })
+					.enter().append("svg:g")
+						.attr("class", "gdots")
+						.attr("transform", function(d) {
+							var cord = [d.Lon, d.Lat];
+							return "translate(" + xy(cord).join(",") + ")"
+						});
+
+					dotsEnter.append("svg:circle")
+						.attr("stroke-width", "none")
+						.attr("fill", "red")
+						.attr("r", 0)
+						.attr("class", "dots")
+						.attr("fill-opacity", 0)
+
+						.transition()
+							.duration(500)
+							.attr("r", function(d) {return Math.sqrt(d.Attended)*1.5})
+							.attr("fill-opacity", .2);
+
+				vis.selectAll(".dots_tot")
+					.data(days, function(d) { return d })
+					.attr("fill", "red")
+					.attr("r", function(d) {return radius(data(d).length)*4})
+					.attr("class", "dots_tot")
+					.attr("fill-opacity", .5)
+					.attr("stroke", "red")
+					.attr("stroke-opacity", .8)
+					.attr("stroke-width", function(d,i) {
+						return cDay == i ? 2 : 0
+					})
+
+				vis.selectAll(".gdots")
+					.data(data(days[cDay]), function(d) { return d.ID;})
+					.exit()
+					.select(".dots")
+					.transition()
+					.attr("r",0)
+					.duration(500)
+					.remove()
+
+			}
+});
+
+});
+
+ });
+    </script>
+
+
+	<div id="legend">
+		<div id="slider"></div>
+		<p>Watch the Occupy Wallstreet movemnet grow by using the slider above.</p>
+		<div id="count">Demo count:</div>
+	<div id="ylabel">28</div>
+	</div>
+	
+	<div id="chart" width="800px">
+	blah
+	</div>
+	<!--
+	<div id="text">
+	<h1>One month of occupations</h1>
+	<p>The Occupy Wall Street movement drew a lot of attention in the beginning of October. The protests that started in New York rapidly spread around the world. This visualization shows how.</p>
+
+	<h2>The data</h2>
+	<p>It is based on data from the site Meetup.com, which is used as a platsform to organize the events around the world. A screen scraper has been written to collect data from all the <a href="http://www.meetup.com/occupytogether/?see_all=1">2000+ communities</a>.</p>
+	<p>The size of the dots depends the numbers of occupiers listed on the website. It does not, in other words, necessarily refelct the actual number of protestors.</p>
+	<p>Due to some technical problems with geocoding special characters a few meetups have been excluded.</p>
+
+
+	<h2>Who made this visualization?</h2>
+	<p>That would be me, Jens Finn?s. You can read more about how this visualization was done on my blog, <a href="http://dataist.wordpress.com/2011/09/05/interactive-athletics-world-record-progression/">Dataist</a>. Contact me on <a href="mailto:'jens.finnas@gmail.com'">jens.finnas@gmail.com</a>, <a href="http://twitter.com/jensfinnas">@jensfinnas</a> or <a href="http://twitter.com/the_dataist">@the_dataist</a>. </p>
+	<p>It is made using the visualization library D3.js. You need an updated browser to view the it.</p>
+
+
+	</div>
+-->
+
+  </body>
+</html>
